@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -47,8 +49,11 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	port := flag.Int("port", 0, "the server port")
+	flag.Parse()
+	log.Printf("started server on port %d", *port)
 	r := mux.NewRouter()
 	api := r.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/place/{placeID}", get).Methods(http.MethodGet)
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), r))
 }
