@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 // ParsePlaceJSON parse Place data out of body and returns a new Place
@@ -13,9 +12,7 @@ func ParsePlaceJSON(body []byte) (*Place, error) {
 	json.Unmarshal(body, &result)
 	//fmt.Print(result)
 
-	place := &Place{
-		OpeningHours: make(map[string]*OpeningHour),
-	}
+	place := &Place{}
 
 	for key, value := range result {
 		switch key {
@@ -41,8 +38,10 @@ func ParsePlaceJSON(body []byte) (*Place, error) {
 		case "opening_hours":
 			openingHourJSON := value.(map[string]interface{})
 			daysJSON := openingHourJSON["days"].(map[string]interface{})
-			for key, value := range daysJSON {
-				openingHour := &OpeningHour{}
+			for day, value := range daysJSON {
+				openingHour := &OpeningHour{
+					Days: []string{day},
+				}
 				for _, value := range value.([]interface{}) {
 					hoursJSON := value.(map[string]interface{})
 					openingType := hoursJSON["type"].(string)
@@ -50,35 +49,24 @@ func ParsePlaceJSON(body []byte) (*Place, error) {
 					end := hoursJSON["end"].(string)
 					if openingType == "OPEN" {
 						openingValue := fmt.Sprintf("%s - %s", start, end)
-						openingHour.Values = append(openingHour.Values, openingValue)
+						openingHour.Hours = append(openingHour.Hours, openingValue)
 					} else {
-						openingHour.Values = []string{openingType}
+						openingHour.Hours = []string{openingType}
 						break
 					}
 				}
-				// check for duplicates
-				found := false
-				for day, existingOpeningHour := range place.OpeningHours {
-					if reflect.DeepEqual(existingOpeningHour.Values, openingHour.Values) {
-						splits := strings.Split(day, " - ")
-
-						if len(splits) > 0 {
-							days := fmt.Sprintf("%s - %s", splits[0], key)
-							place.OpeningHours[days] = openingHour
-
-						} else {
-							days := fmt.Sprintf("%s - %s", day, key)
-							place.OpeningHours[days] = openingHour
-
-						}
-						delete(place.OpeningHours, day)
-						found = true
-						break
+				lastIndex := len(place.OpeningHours) - 1
+				if lastIndex >= 0 {
+					currentOpeningHour := place.OpeningHours[lastIndex]
+					if reflect.DeepEqual(currentOpeningHour.Hours, openingHour.Hours) {
+						currentOpeningHour.Days = append(currentOpeningHour.Days, day)
+					} else {
+						place.OpeningHours = append(place.OpeningHours, openingHour)
 					}
+				} else {
+					place.OpeningHours = []*OpeningHour{openingHour}
 				}
-				if !found {
-					place.OpeningHours[key] = openingHour
-				}
+
 			}
 
 		default:

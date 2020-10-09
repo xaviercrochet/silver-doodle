@@ -14,12 +14,13 @@ type Place struct {
 	ID           string
 	Name         string
 	Location     string
-	OpeningHours map[string]*OpeningHour
+	OpeningHours []*OpeningHour
 }
 
 // OpeningHour is a place's opening hour retrieved from the api
 type OpeningHour struct {
-	Values []string
+	Days  []string
+	Hours []string
 }
 
 // GetPlace retrieve a Place by the provided ID
