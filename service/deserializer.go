@@ -3,15 +3,12 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 )
 
 // ParsePlaceJSON parse Place data out of body and returns a new Place
 func ParsePlaceJSON(body []byte) (*Place, error) {
 	var result map[string]interface{}
 	json.Unmarshal(body, &result)
-	//fmt.Print(result)
-
 	place := &Place{}
 
 	for key, value := range result {
@@ -38,36 +35,24 @@ func ParsePlaceJSON(body []byte) (*Place, error) {
 		case "opening_hours":
 			openingHourJSON := value.(map[string]interface{})
 			daysJSON := openingHourJSON["days"].(map[string]interface{})
-			for day, value := range daysJSON {
-				openingHour := &OpeningHour{
-					Days: []string{day},
-				}
-				for _, value := range value.([]interface{}) {
-					hoursJSON := value.(map[string]interface{})
-					openingType := hoursJSON["type"].(string)
-					start := hoursJSON["start"].(string)
-					end := hoursJSON["end"].(string)
-					if openingType == "OPEN" {
-						openingValue := fmt.Sprintf("%s - %s", start, end)
-						openingHour.Hours = append(openingHour.Hours, openingValue)
-					} else {
-						openingHour.Hours = []string{openingType}
-						break
-					}
-				}
-				lastIndex := len(place.OpeningHours) - 1
-				if lastIndex >= 0 {
-					currentOpeningHour := place.OpeningHours[lastIndex]
-					if reflect.DeepEqual(currentOpeningHour.Hours, openingHour.Hours) {
-						currentOpeningHour.Days = append(currentOpeningHour.Days, day)
-					} else {
-						place.OpeningHours = append(place.OpeningHours, openingHour)
-					}
-				} else {
-					place.OpeningHours = []*OpeningHour{openingHour}
-				}
+			openingHours := NewWeek()
 
+			for day, value := range daysJSON {
+				openingHour := openingHours[day]
+				if openingHour != nil {
+					for _, value := range value.([]interface{}) {
+						hoursJSON := value.(map[string]interface{})
+						openingType := hoursJSON["type"].(string)
+						start := hoursJSON["start"].(string)
+						end := hoursJSON["end"].(string)
+						if openingType == "OPEN" {
+							openingValue := fmt.Sprintf("%s - %s", start, end)
+							openingHour.Hours = append(openingHour.Hours, openingValue)
+						}
+					}
+				}
 			}
+			place.computeSchedule(openingHours)
 
 		default:
 			//fmt.Println(key)

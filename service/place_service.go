@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
 )
 
 const apiURL = "https://storage.googleapis.com/coding-session-rest-api"
@@ -21,6 +22,91 @@ type Place struct {
 type OpeningHour struct {
 	Days  []string
 	Hours []string
+}
+
+// NewOpeningHour returns a new NewOpeningHour with isOpen initialized to false
+func NewOpeningHour(Day string) *OpeningHour {
+	return &OpeningHour{
+		Days:  []string{Day},
+		Hours: []string{},
+	}
+}
+
+//NewWeek return an array of OpeningHour for all days of the week
+func NewWeek() map[string]*OpeningHour {
+	result := make(map[string]*OpeningHour)
+
+	result["monday"] = NewOpeningHour("monday")
+	result["tuesday"] = NewOpeningHour("tuesday")
+	result["wednesday"] = NewOpeningHour("wednesday")
+	result["thursday"] = NewOpeningHour("thursday")
+	result["friday"] = NewOpeningHour("friday")
+	result["saturday"] = NewOpeningHour("saturday")
+	result["sunday"] = NewOpeningHour("sunday")
+
+	return result
+}
+
+func (place *Place) computeSchedule(openingHours map[string]*OpeningHour) {
+	monday := openingHours["monday"]
+	tuesday := openingHours["tuesday"]
+	wednesday := openingHours["wednesday"]
+	thursday := openingHours["thursday"]
+	friday := openingHours["friday"]
+	saturday := openingHours["saturday"]
+	sunday := openingHours["sunday"]
+
+	//monday
+	place.OpeningHours = []*OpeningHour{monday}
+
+	//tuesday
+	lastIndex := len(place.OpeningHours) - 1
+	if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, tuesday.Hours) {
+		place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, tuesday.Days[0])
+	} else {
+		place.OpeningHours = append(place.OpeningHours, tuesday)
+	}
+
+	//wednesday
+	lastIndex = len(place.OpeningHours) - 1
+	if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, wednesday.Hours) {
+		place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, wednesday.Days[0])
+	} else {
+		place.OpeningHours = append(place.OpeningHours, wednesday)
+	}
+
+	//thursday
+	lastIndex = len(place.OpeningHours) - 1
+	if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, thursday.Hours) {
+		place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, thursday.Days[0])
+	} else {
+		place.OpeningHours = append(place.OpeningHours, thursday)
+	}
+
+	//friday
+	lastIndex = len(place.OpeningHours) - 1
+	if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, friday.Hours) {
+		place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, friday.Days[0])
+	} else {
+		place.OpeningHours = append(place.OpeningHours, friday)
+	}
+
+	//saturday
+	lastIndex = len(place.OpeningHours) - 1
+	if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, saturday.Hours) {
+		place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, saturday.Days[0])
+	} else {
+		place.OpeningHours = append(place.OpeningHours, saturday)
+	}
+
+	//sunday
+	lastIndex = len(place.OpeningHours) - 1
+	if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, sunday.Hours) {
+		place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, sunday.Days[0])
+	} else {
+		place.OpeningHours = append(place.OpeningHours, sunday)
+	}
+
 }
 
 // GetPlace retrieve a Place by the provided ID
