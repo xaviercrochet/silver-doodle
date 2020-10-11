@@ -14,10 +14,36 @@ func TestGetPlace(t *testing.T) {
 	place, err := service.GetPlace(placeID1)
 	require.NoError(t, err)
 	require.NotNil(t, place)
+	days := []string{}
+
+	for _, openingHour := range place.OpeningHours {
+		require.NotEqual(t, len(openingHour.Days), 0)
+		require.NotNil(t, openingHour.Hours)
+		for _, day := range openingHour.Days {
+			require.NotNil(t, day)
+			require.NotEmpty(t, day)
+			days = append(days, day)
+
+		}
+	}
+	require.Equal(t, len(days), 7)
 
 	place, err = service.GetPlace(placeID2)
 	require.NoError(t, err)
 	require.NotNil(t, place)
+	days = []string{}
+
+	for _, openingHour := range place.OpeningHours {
+		require.NotEqual(t, len(openingHour.Days), 0)
+		require.NotNil(t, openingHour.Hours)
+		for _, day := range openingHour.Days {
+			require.NotNil(t, day)
+			require.NotEmpty(t, day)
+			days = append(days, day)
+
+		}
+	}
+	require.Equal(t, len(days), 7)
 }
 
 func TestGetPlaceUnknownID(t *testing.T) {
