@@ -1,49 +1,68 @@
 package service
 
-import (
-	"fmt"
-	"localsearch-api/json"
-	"log"
-)
-
 // Place is the place retrieved from the API
 type Place struct {
-	ID           string
-	Name         string
-	Location     string
-	OpeningHours []*OpeningHour
+	ID        string
+	Name      string
+	Location  string
+	Schedules []*Schedule
+	OpenNext  *Schedule
 }
 
-// OpeningHour is a place's opening hour retrieved from the api
-type OpeningHour struct {
-	Days  []string
-	Hours []string
+// Schedule is a place's opening hour retrieved from the api
+type Schedule struct {
+	Days        []string
+	HoursRanges []*HoursRange
 }
 
-// NewOpeningHour returns a new NewOpeningHour with isOpen initialized to false
-func NewOpeningHour(Day string) *OpeningHour {
-	return &OpeningHour{
-		Days:  []string{Day},
-		Hours: []string{},
+// HoursRange ...
+type HoursRange struct {
+	Start     string
+	End       string
+	IsOpenNow bool
+}
+
+// NewHoursRange returns a new HoursRange
+func NewHoursRange(start string, end string) *HoursRange {
+	return &HoursRange{
+		Start:     start,
+		End:       end,
+		IsOpenNow: false,
 	}
 }
 
-func toPlace(localSearchPlace *json.LocalSearchPlace) *Place {
-	place := &Place{}
-	place.Name = localSearchPlace.DisplayedWhat
-	if len(localSearchPlace.Addresses) > 0 {
-		place.Location = fmt.Sprintf(
-			"%s %s, %d %s",
-			localSearchPlace.Addresses[0].Where.Street,
-			localSearchPlace.Addresses[0].Where.HouseNumber,
-			uint32(localSearchPlace.Addresses[0].Where.Zipcode),
-			localSearchPlace.Addresses[0].Where.City,
-		)
+// NewSchedule returns a new NewSchedule
+func NewSchedule(Day string) *Schedule {
+	return &Schedule{
+		Days:        []string{Day},
+		HoursRanges: []*HoursRange{},
 	}
-	log.Print(localSearchPlace.OpeningHours.Days.Tuesday)
-	for key, day := range localSearchPlace.OpeningHours.Days.Tuesday {
-		log.Printf("Day: %d %v", key, day)
+}
+
+func (s *Schedule) compareHoursRanges(schedule *Schedule) bool {
+	if len(s.HoursRanges) != len(schedule.HoursRanges) {
+		return false
 	}
 
-	return place
+	for i := range s.HoursRanges {
+		sameStart := s.HoursRanges[i].Start == schedule.HoursRanges[i].Start
+		sameEnd := s.HoursRanges[i].End == schedule.HoursRanges[i].End
+		if !(sameStart && sameEnd) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (p *Place) isOpenToday() bool {
+	for _, schedule := range p.Schedules {
+		for _, hoursRange := range schedule.HoursRanges {
+			if hoursRange.IsOpenNow {
+				return true
+			}
+
+		}
+	}
+	return false
 }

@@ -6,52 +6,12 @@ import (
 	"localsearch-api/json"
 	"log"
 	"net/http"
-	"reflect"
+	"strconv"
+	"strings"
+	"time"
 )
 
 const apiURL = "https://storage.googleapis.com/coding-session-rest-api"
-
-//NewWeek return an array of OpeningHour for all days of the week
-func NewWeek() map[string]*OpeningHour {
-	result := make(map[string]*OpeningHour)
-
-	result["monday"] = NewOpeningHour("monday")
-	result["tuesday"] = NewOpeningHour("tuesday")
-	result["wednesday"] = NewOpeningHour("wednesday")
-	result["thursday"] = NewOpeningHour("thursday")
-	result["friday"] = NewOpeningHour("friday")
-	result["saturday"] = NewOpeningHour("saturday")
-	result["sunday"] = NewOpeningHour("sunday")
-
-	return result
-}
-
-func (place *Place) computeSchedule(openingHours map[string]*OpeningHour) {
-	rawSchedule := []*OpeningHour{
-		openingHours["monday"],
-		openingHours["tuesday"],
-		openingHours["wednesday"],
-		openingHours["thursday"],
-		openingHours["friday"],
-		openingHours["saturday"],
-		openingHours["sunday"],
-	}
-
-	for _, day := range rawSchedule {
-		if len(place.OpeningHours) == 0 {
-			place.OpeningHours = []*OpeningHour{day}
-
-		} else {
-			lastIndex := len(place.OpeningHours) - 1
-
-			if reflect.DeepEqual(place.OpeningHours[lastIndex].Hours, day.Hours) {
-				place.OpeningHours[lastIndex].Days = append(place.OpeningHours[lastIndex].Days, day.Days[0])
-			} else {
-				place.OpeningHours = append(place.OpeningHours, day)
-			}
-		}
-	}
-}
 
 // GetPlace retrieve a Place by the provided ID
 func GetPlace(placeID string) (*Place, error) {
@@ -75,13 +35,11 @@ func GetPlace(placeID string) (*Place, error) {
 		return nil, logError(fmt.Errorf("could not parse json body: %v", err))
 	}
 
-	//place, err := ParsePlaceJSON(body)
 	rawPlace, err := json.Parse(body)
 	if err != nil {
 		return nil, logError(fmt.Errorf("could not deserialize json body: %v", err))
 
 	}
-	log.Printf("Raw Response: %v", rawPlace)
 	place := toPlace(rawPlace)
 
 	place.ID = placeID
@@ -93,4 +51,131 @@ func logError(err error) error {
 		log.Print(err)
 	}
 	return err
+}
+
+func (place *Place) mergeSchedules(schedules []*Schedule) {
+	for i, schedule := range schedules {
+		if i == 0 {
+			place.Schedules = append(place.Schedules, schedule)
+		} else {
+			current := len(place.Schedules) - 1
+			currentSchedule := place.Schedules[current]
+			if currentSchedule.compareHoursRanges(schedule) {
+				currentSchedule.Days = append(currentSchedule.Days, schedule.Days[0])
+
+			} else {
+				place.Schedules = append(place.Schedules, schedule)
+			}
+		}
+	}
+}
+
+func toPlace(localSearchPlace *json.LocalSearchPlace) *Place {
+	place := &Place{}
+	place.Name = localSearchPlace.DisplayedWhat
+	if len(localSearchPlace.Addresses) > 0 {
+		place.Location = fmt.Sprintf(
+			"%s %s, %d %s",
+			localSearchPlace.Addresses[0].Where.Street,
+			localSearchPlace.Addresses[0].Where.HouseNumber,
+			uint32(localSearchPlace.Addresses[0].Where.Zipcode),
+			localSearchPlace.Addresses[0].Where.City,
+		)
+	}
+	monday := parseDaySchedules(time.Weekday(time.Monday), localSearchPlace.OpeningHours.Days.Monday)
+	tuesday := parseDaySchedules(time.Weekday(time.Tuesday), localSearchPlace.OpeningHours.Days.Tuesday)
+	wednesday := parseDaySchedules(time.Weekday(time.Wednesday), localSearchPlace.OpeningHours.Days.Wednesday)
+	thursday := parseDaySchedules(time.Weekday(time.Thursday), localSearchPlace.OpeningHours.Days.Thursday)
+	friday := parseDaySchedules(time.Weekday(time.Friday), localSearchPlace.OpeningHours.Days.Friday)
+	saturday := parseDaySchedules(time.Weekday(time.Saturday), localSearchPlace.OpeningHours.Days.Saturday)
+	sunday := parseDaySchedules(time.Weekday(time.Sunday), localSearchPlace.OpeningHours.Days.Sunday)
+
+	place.Schedules = []*Schedule{
+		monday,
+		tuesday,
+		wednesday,
+		thursday,
+		friday,
+		saturday,
+		sunday,
+	}
+
+	if !place.isOpenToday() {
+		place.OpenNext = findOpenNext(place.Schedules)
+	}
+
+	return place
+}
+
+func parseDaySchedules(weekday time.Weekday, localSearchOpeningHours []*json.LocalSearchSchedule) *Schedule {
+	schedule := NewSchedule(weekday.String())
+	schedule.Days = []string{weekday.String()}
+	for _, localSearchOpeningHour := range localSearchOpeningHours {
+		hoursRange := NewHoursRange(localSearchOpeningHour.Start, localSearchOpeningHour.End)
+		schedule.HoursRanges = append(schedule.HoursRanges, hoursRange)
+		hoursRange.IsOpenNow = localSearchOpeningHour.IsOpen(weekday)
+
+	}
+	return schedule
+}
+
+func computeDate(current time.Time, hourAndMins string) time.Time {
+
+	splits := strings.Split(hourAndMins, ":")
+	hour, err := strconv.Atoi(splits[0])
+	if err != nil {
+		log.Printf("could not parse hour part of schedule.Start: %v", err)
+		return current
+	}
+	min, err := strconv.Atoi(splits[1])
+	if err != nil {
+		log.Printf("could not parse minuts part of schedule.Start: %v", err)
+		return current
+	}
+
+	return time.Date(current.Year(), current.Month(), current.Day(), hour, min, 0, 0, current.Location())
+}
+
+func findOpenNext(schedules []*Schedule) *Schedule {
+	//1 find index of today
+	now := time.Now()
+	index := 0
+	for i, schedule := range schedules {
+		if schedule.Days[0] == now.Weekday().String() {
+			index = i
+			break
+		}
+	}
+	// 2 look forward
+
+	for i := index; i < len(schedules); i++ {
+		schedule := schedules[i]
+		for j, hoursRange := range schedule.HoursRanges {
+			start := computeDate(now, hoursRange.Start)
+			end := computeDate(now, hoursRange.End)
+			if now.After(start) && now.Before(end) {
+				return schedule
+			} else if j < len(schedule.HoursRanges)-1 {
+				return schedule
+			}
+		}
+		now.AddDate(0, 0, 1)
+	}
+	// 3 look backward
+	now = time.Now()
+	for i := index; i >= 0; i-- {
+		schedule := schedules[i]
+		for j, hoursRange := range schedule.HoursRanges {
+			start := computeDate(now, hoursRange.Start)
+			end := computeDate(now, hoursRange.End)
+			if now.After(start) && now.Before(end) {
+				return schedule
+			} else if j < len(schedule.HoursRanges)-1 {
+				return schedule
+			}
+		}
+		now.AddDate(0, 0, -1)
+
+	}
+	return nil
 }

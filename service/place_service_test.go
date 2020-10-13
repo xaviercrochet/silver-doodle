@@ -16,10 +16,10 @@ func TestGetPlace(t *testing.T) {
 	require.NotNil(t, place)
 	days := []string{}
 
-	for _, openingHour := range place.OpeningHours {
-		require.NotEqual(t, len(openingHour.Days), 0)
-		require.NotNil(t, openingHour.Hours)
-		for _, day := range openingHour.Days {
+	for _, schedule := range place.Schedules {
+		require.NotEqual(t, len(schedule.Days), 0)
+		require.NotNil(t, schedule.HoursRanges)
+		for _, day := range schedule.Days {
 			require.NotNil(t, day)
 			require.NotEmpty(t, day)
 			days = append(days, day)
@@ -33,10 +33,10 @@ func TestGetPlace(t *testing.T) {
 	require.NotNil(t, place)
 	days = []string{}
 
-	for _, openingHour := range place.OpeningHours {
-		require.NotEqual(t, len(openingHour.Days), 0)
-		require.NotNil(t, openingHour.Hours)
-		for _, day := range openingHour.Days {
+	for _, schedule := range place.Schedules {
+		require.NotEqual(t, len(schedule.Days), 0)
+		require.NotNil(t, schedule.HoursRanges)
+		for _, day := range schedule.Days {
 			require.NotNil(t, day)
 			require.NotEmpty(t, day)
 			days = append(days, day)
@@ -50,7 +50,7 @@ func TestGetPlaceUnknownID(t *testing.T) {
 	t.Parallel()
 	placeID := "xavier"
 	place, err := service.GetPlace(placeID)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.Nil(t, place)
 
 }
