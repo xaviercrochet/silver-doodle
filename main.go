@@ -18,13 +18,10 @@ func get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	placeID := pathParams["placeID"]
 
-	//query := r.URL.Query()
-	///location := query.Get("location")
-
 	place, err := service.GetPlace(placeID)
 
 	if err != nil {
-		log.Fatalf("cannot retrieve place: %v", err)
+		log.Printf("cannot retrieve place: %v", err)
 	}
 
 	if place == nil {
@@ -35,7 +32,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	json, err := json.Marshal(place)
 
 	if err != nil {
-		log.Fatalf("cannot marshal place object to json: %v", err)
+		log.Printf("cannot marshal place object to json: %v", err)
 	}
 
 	w.Write(json)

@@ -82,24 +82,32 @@ func GetPlace(placeID string) (*Place, error) {
 
 	resp, err := http.Get(path)
 	if err != nil {
-		return nil, fmt.Errorf("could not retrieve place from api: %v", err)
+		return nil, logError(fmt.Errorf("could not retrieve place from api: %v", err))
+
 	}
 
 	if resp.StatusCode != 200 {
-		log.Printf("expected 200 http status code but got in stead %v", resp.StatusCode)
-		return nil, nil
+		return nil, logError(fmt.Errorf("expected http 200 but got %v", resp.StatusCode))
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse json body: %v", err)
+		return nil, logError(fmt.Errorf("could not parse json body: %v", err))
 	}
 
 	place, err := ParsePlaceJSON(body)
 	if err != nil {
-		return nil, fmt.Errorf("could not deserialize json body: %v", err)
+		return nil, logError(fmt.Errorf("could not deserialize json body: %v", err))
+
 	}
 	place.ID = placeID
 	return place, nil
+}
+
+func logError(err error) error {
+	if err != nil {
+		log.Print(err)
+	}
+	return err
 }
