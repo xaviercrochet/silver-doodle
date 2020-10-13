@@ -3,34 +3,13 @@ package service
 import (
 	"fmt"
 	"io/ioutil"
+	"localsearch-api/json"
 	"log"
 	"net/http"
 	"reflect"
 )
 
 const apiURL = "https://storage.googleapis.com/coding-session-rest-api"
-
-// Place is the place retrieved from the API
-type Place struct {
-	ID           string
-	Name         string
-	Location     string
-	OpeningHours []*OpeningHour
-}
-
-// OpeningHour is a place's opening hour retrieved from the api
-type OpeningHour struct {
-	Days  []string
-	Hours []string
-}
-
-// NewOpeningHour returns a new NewOpeningHour with isOpen initialized to false
-func NewOpeningHour(Day string) *OpeningHour {
-	return &OpeningHour{
-		Days:  []string{Day},
-		Hours: []string{},
-	}
-}
 
 //NewWeek return an array of OpeningHour for all days of the week
 func NewWeek() map[string]*OpeningHour {
@@ -96,11 +75,15 @@ func GetPlace(placeID string) (*Place, error) {
 		return nil, logError(fmt.Errorf("could not parse json body: %v", err))
 	}
 
-	place, err := ParsePlaceJSON(body)
+	//place, err := ParsePlaceJSON(body)
+	rawPlace, err := json.Parse(body)
 	if err != nil {
 		return nil, logError(fmt.Errorf("could not deserialize json body: %v", err))
 
 	}
+	log.Printf("Raw Response: %v", rawPlace)
+	place := toPlace(rawPlace)
+
 	place.ID = placeID
 	return place, nil
 }
