@@ -53,23 +53,6 @@ func logError(err error) error {
 	return err
 }
 
-func (place *Place) mergeSchedules(schedules []*Schedule) {
-	for i, schedule := range schedules {
-		if i == 0 {
-			place.Schedules = append(place.Schedules, schedule)
-		} else {
-			current := len(place.Schedules) - 1
-			currentSchedule := place.Schedules[current]
-			if currentSchedule.compareHoursRanges(schedule) {
-				currentSchedule.Days = append(currentSchedule.Days, schedule.Days[0])
-
-			} else {
-				place.Schedules = append(place.Schedules, schedule)
-			}
-		}
-	}
-}
-
 func toPlace(localSearchPlace *json.LocalSearchPlace) *Place {
 	place := &Place{}
 	place.Name = localSearchPlace.DisplayedWhat
