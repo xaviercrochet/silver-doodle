@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"localsearch-api/json"
+	"localsearch-api/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,30 +15,50 @@ import (
 const apiURL = "https://storage.googleapis.com/coding-session-rest-api"
 
 // GetPlace retrieve a Place by the provided ID
-func GetPlace(placeID string) (*Place, error) {
+func GetPlace(placeID string) (*Place, *utils.ApplicationError) {
 	// todo checkplaceID is a valid one
 	path := fmt.Sprintf("%s/%s", apiURL, placeID)
 	log.Printf("GetPath: %v", path)
 
 	resp, err := http.Get(path)
 	if err != nil {
-		return nil, logError(fmt.Errorf("could not retrieve place from api: %v", err))
+		apiErr := &utils.ApplicationError{
+			Message:    fmt.Sprintf("could not retrieve place from api: %v", err),
+			StatusCode: http.StatusServiceUnavailable,
+			Code:       "localsearch api not available",
+		}
+		return nil, apiErr
 
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, logError(fmt.Errorf("expected http 200 but got %v", resp.StatusCode))
+		apiErr := &utils.ApplicationError{
+			Message:    fmt.Sprintf("could not retrieve place from api: %v", resp.StatusCode),
+			StatusCode: http.StatusNotFound,
+			Code:       "resource not found",
+		}
+		return nil, apiErr
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, logError(fmt.Errorf("could not parse json body: %v", err))
+		apiErr := &utils.ApplicationError{
+			Message:    fmt.Sprintf("could not parse json body: %v", err),
+			StatusCode: http.StatusServiceUnavailable,
+			Code:       "local search api not available",
+		}
+		return nil, apiErr
 	}
 
 	rawPlace, err := json.Parse(body)
 	if err != nil {
-		return nil, logError(fmt.Errorf("could not deserialize json body: %v", err))
+		apiErr := &utils.ApplicationError{
+			Message:    fmt.Sprintf("could not deserialize json body: %v", err),
+			StatusCode: http.StatusInternalServerError,
+			Code:       "internal server error",
+		}
+		return nil, apiErr
 
 	}
 	place := toPlace(rawPlace)

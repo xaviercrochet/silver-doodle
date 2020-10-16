@@ -18,23 +18,16 @@ func get(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	placeID := pathParams["placeID"]
 
-	place, err := service.GetPlace(placeID)
+	place, apiErr := service.GetPlace(placeID)
 
-	if err != nil {
-		log.Printf("cannot retrieve place: %v", err)
+	if apiErr != nil {
+		w.WriteHeader(apiErr.StatusCode)
+		jsonValue, _ := json.Marshal(apiErr)
+		w.Write([]byte(jsonValue))
+		return
 	}
 
-	if place == nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"message": "not found"}`))
-	}
-
-	json, err := json.Marshal(place)
-
-	if err != nil {
-		log.Printf("cannot marshal place object to json: %v", err)
-	}
-
+	json, _ := json.Marshal(place)
 	w.Write(json)
 }
 
