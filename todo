@@ -1,4 +1,3 @@
-*clean deserialisation
 *create a struct for place service with an api endpoint
 *move model to a separate package
 * error handling in main.go 
