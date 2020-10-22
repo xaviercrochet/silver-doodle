@@ -1,4 +1,4 @@
-package service
+package places
 
 // Place is the place retrieved from the API
 type Place struct {
@@ -55,7 +55,8 @@ func (s *Schedule) compareHoursRanges(schedule *Schedule) bool {
 	return true
 }
 
-func (p *Place) isOpenToday() bool {
+// IsOpenToday ...
+func (p *Place) IsOpenToday() bool {
 	for _, schedule := range p.Schedules {
 		for _, hoursRange := range schedule.HoursRanges {
 			if hoursRange.IsOpenNow {

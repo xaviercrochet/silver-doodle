@@ -1,82 +1,48 @@
-package service
+package services
 
 import (
 	"fmt"
-	"io/ioutil"
-	"localsearch-api/json"
+	"localsearch-api/domain/localsearch"
+	"localsearch-api/domain/places"
+	"localsearch-api/providers"
 	"localsearch-api/utils"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
 
-const apiURL = "https://storage.googleapis.com/coding-session-rest-api"
+// PlacesService ...
+var PlacesService placesServiceInterface
 
-// GetPlace retrieve a Place by the provided ID
-func GetPlace(placeID string) (*Place, *utils.ApplicationError) {
-	// todo checkplaceID is a valid one
-	path := fmt.Sprintf("%s/%s", apiURL, placeID)
-	log.Printf("GetPath: %v", path)
+type placesServiceInterface interface {
+	GetPlace(placeID string) (*places.Place, *utils.ApplicationError)
+}
 
-	resp, err := http.Get(path)
+type placesService struct{}
+
+func init() {
+	PlacesService = &placesService{}
+}
+
+func (s *placesService) GetPlace(placeID string) (*places.Place, *utils.ApplicationError) {
+	resp, err := providers.PlacesProvider.GetPlace(placeID)
 	if err != nil {
-		apiErr := &utils.ApplicationError{
-			Message:    fmt.Sprintf("could not retrieve place from api: %v", err),
-			StatusCode: http.StatusServiceUnavailable,
-			Code:       "localsearch api not available",
+		return nil, &utils.ApplicationError{
+			Message:    err.Message,
+			StatusCode: err.StatusCode,
 		}
-		return nil, apiErr
-
 	}
-
-	if resp.StatusCode != 200 {
-		apiErr := &utils.ApplicationError{
-			Message:    fmt.Sprintf("could not retrieve place from api: %v", resp.StatusCode),
-			StatusCode: http.StatusNotFound,
-			Code:       "resource not found",
-		}
-		return nil, apiErr
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		apiErr := &utils.ApplicationError{
-			Message:    fmt.Sprintf("could not parse json body: %v", err),
-			StatusCode: http.StatusServiceUnavailable,
-			Code:       "local search api not available",
-		}
-		return nil, apiErr
-	}
-
-	rawPlace, err := json.Parse(body)
-	if err != nil {
-		apiErr := &utils.ApplicationError{
-			Message:    fmt.Sprintf("could not deserialize json body: %v", err),
-			StatusCode: http.StatusInternalServerError,
-			Code:       "internal server error",
-		}
-		return nil, apiErr
-
-	}
-	place := toPlace(rawPlace)
-
+	place := buildPlace(resp)
 	place.ID = placeID
 	return place, nil
 }
 
-func logError(err error) error {
-	if err != nil {
-		log.Print(err)
+func buildPlace(localSearchPlace *localsearch.LocalSearchPlace) *places.Place {
+	place := &places.Place{
+		Name: localSearchPlace.DisplayedWhat,
 	}
-	return err
-}
 
-func toPlace(localSearchPlace *json.LocalSearchPlace) *Place {
-	place := &Place{}
-	place.Name = localSearchPlace.DisplayedWhat
 	if len(localSearchPlace.Addresses) > 0 {
 		place.Location = fmt.Sprintf(
 			"%s %s, %d %s",
@@ -94,7 +60,7 @@ func toPlace(localSearchPlace *json.LocalSearchPlace) *Place {
 	saturday := parseDaySchedules(time.Weekday(time.Saturday), localSearchPlace.OpeningHours.Days.Saturday)
 	sunday := parseDaySchedules(time.Weekday(time.Sunday), localSearchPlace.OpeningHours.Days.Sunday)
 
-	place.Schedules = []*Schedule{
+	place.Schedules = []*places.Schedule{
 		monday,
 		tuesday,
 		wednesday,
@@ -104,18 +70,18 @@ func toPlace(localSearchPlace *json.LocalSearchPlace) *Place {
 		sunday,
 	}
 
-	if !place.isOpenToday() {
+	if !place.IsOpenToday() {
 		place.OpenNext = findOpenNext(place.Schedules)
 	}
 
 	return place
 }
 
-func parseDaySchedules(weekday time.Weekday, localSearchOpeningHours []*json.LocalSearchSchedule) *Schedule {
-	schedule := NewSchedule(weekday.String())
+func parseDaySchedules(weekday time.Weekday, localSearchOpeningHours []*localsearch.LocalSearchSchedule) *places.Schedule {
+	schedule := places.NewSchedule(weekday.String())
 	schedule.Days = []string{weekday.String()}
 	for _, localSearchOpeningHour := range localSearchOpeningHours {
-		hoursRange := NewHoursRange(localSearchOpeningHour.Start, localSearchOpeningHour.End)
+		hoursRange := places.NewHoursRange(localSearchOpeningHour.Start, localSearchOpeningHour.End)
 		schedule.HoursRanges = append(schedule.HoursRanges, hoursRange)
 		hoursRange.IsOpenNow = localSearchOpeningHour.IsOpen(weekday)
 
@@ -123,24 +89,7 @@ func parseDaySchedules(weekday time.Weekday, localSearchOpeningHours []*json.Loc
 	return schedule
 }
 
-func computeDate(current time.Time, hourAndMins string) time.Time {
-
-	splits := strings.Split(hourAndMins, ":")
-	hour, err := strconv.Atoi(splits[0])
-	if err != nil {
-		log.Printf("could not parse hour part of schedule.Start: %v", err)
-		return current
-	}
-	min, err := strconv.Atoi(splits[1])
-	if err != nil {
-		log.Printf("could not parse minuts part of schedule.Start: %v", err)
-		return current
-	}
-
-	return time.Date(current.Year(), current.Month(), current.Day(), hour, min, 0, 0, current.Location())
-}
-
-func findOpenNext(schedules []*Schedule) *Schedule {
+func findOpenNext(schedules []*places.Schedule) *places.Schedule {
 	//1 find index of today
 	now := time.Now()
 	index := 0
@@ -182,4 +131,21 @@ func findOpenNext(schedules []*Schedule) *Schedule {
 
 	}
 	return nil
+}
+
+func computeDate(current time.Time, hourAndMins string) time.Time {
+
+	splits := strings.Split(hourAndMins, ":")
+	hour, err := strconv.Atoi(splits[0])
+	if err != nil {
+		log.Printf("could not parse hour part of schedule.Start: %v", err)
+		return current
+	}
+	min, err := strconv.Atoi(splits[1])
+	if err != nil {
+		log.Printf("could not parse minuts part of schedule.Start: %v", err)
+		return current
+	}
+
+	return time.Date(current.Year(), current.Month(), current.Day(), hour, min, 0, 0, current.Location())
 }

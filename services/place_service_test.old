@@ -1,7 +1,6 @@
-package service_test
+package services
 
 import (
-	"localsearch-api/service"
 	"net/http"
 	"testing"
 

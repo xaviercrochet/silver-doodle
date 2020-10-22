@@ -1,4 +1,4 @@
-package json
+package localsearch
 
 import (
 	"log"
