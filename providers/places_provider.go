@@ -49,13 +49,8 @@ func (p *placesProvider) GetPlace(placeID string) (*localsearch.LocalSearchPlace
 
 	if resp.StatusCode > 299 {
 		errorResponse := &localsearch.ErrorResponse{}
-		if err := json.Unmarshal(bytes, errorResponse); err != nil {
-			return nil, &localsearch.ErrorResponse{
-				Message:    fmt.Sprintf("cannot unmarshal response error body: %v", err),
-				StatusCode: http.StatusInternalServerError,
-			}
-		}
-
+		// error message are provided in XML :s
+		errorResponse.Message = "error"
 		errorResponse.StatusCode = resp.StatusCode
 		return nil, errorResponse
 	}

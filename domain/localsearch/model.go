@@ -16,7 +16,7 @@ type LocalSearchPlace struct {
 
 // LocalSearchOpeningHours ...
 type LocalSearchOpeningHours struct {
-	Days LocalSearchDays
+	Days *LocalSearchDays
 }
 
 // LocalSearchDays ...

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"localsearch-api/clients"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -22,12 +23,9 @@ func (rc *restClientMock) Get(url string, header http.Header) (*http.Response, e
 	return funcGet(url, header)
 }
 
-func TestMain(m *testing.M) {
-	clients.RestClient = &restClientMock{}
-}
-
 func TestGetPlaceRestClientError(t *testing.T) {
-	t.Log("TestGetPlaceRestClientError")
+
+	clients.RestClient = &restClientMock{}
 	restError := errors.New("rest client failed")
 
 	funcGet = func(url string, header http.Header) (*http.Response, error) {
@@ -43,6 +41,7 @@ func TestGetPlaceRestClientError(t *testing.T) {
 }
 
 func TestGetPlaceSuccess(t *testing.T) {
+	clients.RestClient = &restClientMock{}
 	funcGet = func(url string, header http.Header) (*http.Response, error) {
 		json := `{}`
 		r := ioutil.NopCloser(strings.NewReader(json))
@@ -53,6 +52,64 @@ func TestGetPlaceSuccess(t *testing.T) {
 	}
 
 	place, err := PlacesProvider.GetPlace("123")
+
 	require.Nil(t, err)
 	require.NotNil(t, place)
+}
+
+func TestGetPlaceResponseBodyError(t *testing.T) {
+	clients.RestClient = &restClientMock{}
+	funcGet = func(url string, header http.Header) (*http.Response, error) {
+		invalidCloser, _ := os.Open("-abc")
+		return &http.Response{
+			Body:       invalidCloser,
+			StatusCode: http.StatusOK,
+		}, nil
+	}
+
+	place, err := PlacesProvider.GetPlace("123")
+
+	require.Nil(t, place)
+	require.NotNil(t, err)
+	require.Equal(t, err.StatusCode, http.StatusInternalServerError)
+
+}
+
+func TestGetPlaceInvalidResponseStatusCode(t *testing.T) {
+	clients.RestClient = &restClientMock{}
+	funcGet = func(url string, header http.Header) (*http.Response, error) {
+		json := `{}`
+		r := ioutil.NopCloser(strings.NewReader(json))
+		return &http.Response{
+			StatusCode: 400,
+			Body:       r,
+		}, nil
+	}
+
+	place, err := PlacesProvider.GetPlace("123")
+
+	require.Nil(t, place)
+	require.NotNil(t, err)
+	require.Equal(t, 400, err.StatusCode)
+
+}
+
+func TestGetPlaceInvalidSuccessfulResponseBody(t *testing.T) {
+	clients.RestClient = &restClientMock{}
+	funcGet = func(url string, header http.Header) (*http.Response, error) {
+		json := `{`
+		r := ioutil.NopCloser(strings.NewReader(json))
+
+		return &http.Response{
+			Body:       r,
+			StatusCode: http.StatusOK,
+		}, nil
+	}
+
+	place, err := PlacesProvider.GetPlace("123")
+
+	require.Nil(t, place)
+	require.NotNil(t, err)
+	require.Equal(t, http.StatusInternalServerError, err.StatusCode)
+
 }
