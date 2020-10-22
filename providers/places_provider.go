@@ -14,7 +14,7 @@ import (
 var PlacesProvider placesProviderInterface
 
 type placesProviderInterface interface {
-	GetPlace(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse)
+	GetPlace(placeID string) (*localsearch.Place, *localsearch.ErrorResponse)
 }
 
 type placesProvider struct{}
@@ -23,7 +23,7 @@ func init() {
 	PlacesProvider = &placesProvider{}
 }
 
-func (p *placesProvider) GetPlace(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse) {
+func (p *placesProvider) GetPlace(placeID string) (*localsearch.Place, *localsearch.ErrorResponse) {
 	path := fmt.Sprintf("%s/%s", config.GetExternalAPIURl(), placeID)
 	// no specific header for now
 	header := http.Header{}
@@ -54,7 +54,7 @@ func (p *placesProvider) GetPlace(placeID string) (*localsearch.LocalSearchPlace
 		return nil, errorResponse
 	}
 
-	localSearchPlace := &localsearch.LocalSearchPlace{}
+	localSearchPlace := &localsearch.Place{}
 	if err := json.Unmarshal(bytes, localSearchPlace); err != nil {
 		return nil, &localsearch.ErrorResponse{
 			Message:    fmt.Sprintf("could not deserialize json body: %v", err),

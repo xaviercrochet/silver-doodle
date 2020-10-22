@@ -10,19 +10,19 @@ import (
 )
 
 var (
-	funcGetPlace func(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse)
+	funcGetPlace func(placeID string) (*localsearch.Place, *localsearch.ErrorResponse)
 )
 
 type placesProviderMock struct {
 }
 
-func (p *placesProviderMock) GetPlace(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse) {
+func (p *placesProviderMock) GetPlace(placeID string) (*localsearch.Place, *localsearch.ErrorResponse) {
 	return funcGetPlace(placeID)
 }
 
 func TestGetPlaceApplicationError(t *testing.T) {
 	providers.PlacesProvider = &placesProviderMock{}
-	funcGetPlace = func(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse) {
+	funcGetPlace = func(placeID string) (*localsearch.Place, *localsearch.ErrorResponse) {
 		return nil, &localsearch.ErrorResponse{
 			Message:    "error",
 			StatusCode: http.StatusInternalServerError,
@@ -38,11 +38,11 @@ func TestGetPlaceApplicationError(t *testing.T) {
 func TestGetPlaceSuccess(t *testing.T) {
 	providers.PlacesProvider = &placesProviderMock{}
 
-	funcGetPlace = func(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse) {
-		return &localsearch.LocalSearchPlace{
-			Addresses: []*localsearch.LocalSearchAddress{
-				&localsearch.LocalSearchAddress{
-					Where: &localsearch.LocalSearchWhere{
+	funcGetPlace = func(placeID string) (*localsearch.Place, *localsearch.ErrorResponse) {
+		return &localsearch.Place{
+			Addresses: []*localsearch.Address{
+				&localsearch.Address{
+					Where: &localsearch.Where{
 						Street:      "street",
 						City:        "city",
 						HouseNumber: "house number",
@@ -50,15 +50,15 @@ func TestGetPlaceSuccess(t *testing.T) {
 					},
 				},
 			},
-			OpeningHours: &localsearch.LocalSearchOpeningHours{
-				Days: &localsearch.LocalSearchDays{
-					Monday: []*localsearch.LocalSearchSchedule{
-						&localsearch.LocalSearchSchedule{
+			OpeningHours: &localsearch.OpeningHours{
+				Days: &localsearch.Days{
+					Monday: []*localsearch.Schedule{
+						&localsearch.Schedule{
 							Start: "10:00",
 							End:   "12:00",
 							Type:  "OPEN",
 						},
-						&localsearch.LocalSearchSchedule{
+						&localsearch.Schedule{
 							Start: "14:00",
 							End:   "22:00",
 							Type:  "OPEN",

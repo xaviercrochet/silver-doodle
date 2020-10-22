@@ -7,43 +7,43 @@ import (
 	"time"
 )
 
-// LocalSearchPlace ...
-type LocalSearchPlace struct {
+// Place ...
+type Place struct {
 	DisplayedWhat string `json:"displayed_what"`
-	Addresses     []*LocalSearchAddress
-	OpeningHours  *LocalSearchOpeningHours `json:"opening_hours"`
+	Addresses     []*Address
+	OpeningHours  *OpeningHours `json:"opening_hours"`
 }
 
-// LocalSearchOpeningHours ...
-type LocalSearchOpeningHours struct {
-	Days *LocalSearchDays
+// OpeningHours ...
+type OpeningHours struct {
+	Days *Days
 }
 
-// LocalSearchDays ...
-type LocalSearchDays struct {
-	Monday    []*LocalSearchSchedule
-	Tuesday   []*LocalSearchSchedule
-	Wednesday []*LocalSearchSchedule
-	Thursday  []*LocalSearchSchedule
-	Friday    []*LocalSearchSchedule
-	Saturday  []*LocalSearchSchedule
-	Sunday    []*LocalSearchSchedule
+// Days ...
+type Days struct {
+	Monday    []*Schedule
+	Tuesday   []*Schedule
+	Wednesday []*Schedule
+	Thursday  []*Schedule
+	Friday    []*Schedule
+	Saturday  []*Schedule
+	Sunday    []*Schedule
 }
 
-// LocalSearchSchedule ...
-type LocalSearchSchedule struct {
+// Schedule ...
+type Schedule struct {
 	Start string
 	End   string
 	Type  string
 }
 
-// LocalSearchAddress ...
-type LocalSearchAddress struct {
-	Where *LocalSearchWhere
+// Address ...
+type Address struct {
+	Where *Where
 }
 
-// LocalSearchWhere ...
-type LocalSearchWhere struct {
+// Where ...
+type Where struct {
 	Street      string
 	City        string
 	HouseNumber string `json:"house_number"`
@@ -51,7 +51,7 @@ type LocalSearchWhere struct {
 }
 
 // IsOpen return true if now is between schedule.start, schedule.end hours and weekday for the given date
-func (schedule *LocalSearchSchedule) IsOpen(weekday time.Weekday) bool {
+func (schedule *Schedule) IsOpen(weekday time.Weekday) bool {
 	now := time.Now()
 	if now.Weekday() != weekday {
 		return false

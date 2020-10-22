@@ -38,7 +38,7 @@ func (s *placesService) GetPlace(placeID string) (*places.Place, *utils.Applicat
 	return place, nil
 }
 
-func buildPlace(localSearchPlace *localsearch.LocalSearchPlace) *places.Place {
+func buildPlace(localSearchPlace *localsearch.Place) *places.Place {
 	place := &places.Place{
 		Name: localSearchPlace.DisplayedWhat,
 	}
@@ -77,7 +77,7 @@ func buildPlace(localSearchPlace *localsearch.LocalSearchPlace) *places.Place {
 	return place
 }
 
-func parseDaySchedules(weekday time.Weekday, localSearchOpeningHours []*localsearch.LocalSearchSchedule) *places.Schedule {
+func parseDaySchedules(weekday time.Weekday, localSearchOpeningHours []*localsearch.Schedule) *places.Schedule {
 	schedule := places.NewSchedule(weekday.String())
 	schedule.Days = []string{weekday.String()}
 	for _, localSearchOpeningHour := range localSearchOpeningHours {
