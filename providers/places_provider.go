@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"localsearch-api/clients"
+	"localsearch-api/config"
 	"localsearch-api/domain/localsearch"
 	"net/http"
 )
-
-const apiURL = "https://storage.googleapis.com/coding-session-rest-api"
 
 // PlacesProvider ...
 var PlacesProvider placesProviderInterface
@@ -25,7 +24,7 @@ func init() {
 }
 
 func (p *placesProvider) GetPlace(placeID string) (*localsearch.LocalSearchPlace, *localsearch.ErrorResponse) {
-	path := fmt.Sprintf("%s/%s", apiURL, placeID)
+	path := fmt.Sprintf("%s/%s", config.GetExternalAPIURl(), placeID)
 	// no specific header for now
 	header := http.Header{}
 
