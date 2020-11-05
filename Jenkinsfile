@@ -1,7 +1,7 @@
 pipeline {
    agent any
    environment {
-       registry = "gary.local:5000"
+       registry = "gary.local"
        GOCACHE = "/tmp"
    }
    stages {
