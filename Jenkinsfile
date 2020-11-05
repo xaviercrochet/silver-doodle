@@ -46,7 +46,7 @@ pipeline {
            steps{
                script {
                    def appimage = docker.build registry + ":$BUILD_NUMBER"
-                   docker.withRegistry( "http://"registry + ":5000" ) {
+                   docker.withRegistry( "http://" + registry + ":5000" ) {
                        appimage.push()
                        appimage.push('latest')
                    }
