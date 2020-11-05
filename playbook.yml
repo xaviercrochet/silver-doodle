@@ -1,12 +1,12 @@
 - hosts: localhost
   tasks:
   - name: Deploy the service
-    k3s:
+    k8s:
       state: present
       definition: ""
       namespace: default
   - name: Deploy the application
-    k3s:
+    k8s:
       state: present
       namespace: default
       definition: ""
