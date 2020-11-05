@@ -1,7 +1,7 @@
 pipeline {
    agent any
    environment {
-       registry = "gary.local"
+       registry = "localsearch-api"
        GOCACHE = "/tmp"
    }
    stages {
@@ -46,7 +46,7 @@ pipeline {
            steps{
                script {
                    def appimage = docker.build registry + ":$BUILD_NUMBER"
-                   docker.withRegistry( "http://" + registry + ":5000" ) {
+                   docker.withRegistry( "http://gary.local:5000" ) {
                        appimage.push()
                        appimage.push('latest')
                    }
